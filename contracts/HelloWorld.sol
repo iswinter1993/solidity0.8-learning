@@ -237,3 +237,31 @@ contract GetEth {
     }
 }
 
+
+//委托调用改变合约的值
+contract TestDelegateCall { //被调用合约
+// 定义的变量 要和 委托合约的变量一致
+    uint public num;
+    address sender;
+
+    function setVars(uint _num) external payable {
+        num = _num;
+        sender = msg.sender;
+    }
+}
+//委托调用
+contract DelegateCall { //委托合约
+// 定义的变量 要和 委托合约的变量一致
+    uint public num;
+    address public sender;
+    //_target 要调用合约的地址
+    function setVars(address _target, uint _num) external payable {
+        //委托调用 方法1.
+        (bool success, ) = _target.delegatecall(abi.encodeWithSignature('setVars(uint)', _num));
+        //委托调用 方法2.
+        // (bool success, ) = _target.delegatecall(abi.encodeWithSelector(Test.setVars.selector,_num));
+        require(success,'delegatecall failed');
+
+    }
+
+}

@@ -44,7 +44,8 @@ contract Counter {
     //constant 定义常量
     uint public constant A = 124; 
     bool public paused;
-    address public owner;
+    //immutable 部署时定义的常量,节省gas
+    address public immutable owner;
 
 
     //映射
@@ -66,7 +67,7 @@ contract Counter {
     Car[] public cars;
     mapping(address => Car[]) public ownerCars;
     function example() external view {
-        //内存中定义结构体
+        //内存中定义结构体,内存中不能修改删除
         Car memory toyota = Car('red',123,msg.sender);
     }
 
@@ -128,11 +129,20 @@ contract Counter {
 //通过合约 部署 合约
 contract Proxy {
     event Deploy(address);
-    
-    
+    //动态部署无参数合约
+    function getHelloWorldCode() external pure returns(bytes memory){
+        bytes memory bytecode = type(HelloWorld).creationCode;//获取HelloWorld合约的编译后code
+        return bytecode;
+    }
+    //动态部署 constructor 有参数 合约
+    function getCounterCode(uint _x) external pure returns(bytes memory){
+        bytes memory bytecode = type(Counter).creationCode;
+        //把合约编译后的code 和 encode后的参数 进行打包后返回
+        return abi.encodePacked(bytecode, abi.encode(_x));
+    }
     //abi.encodeWithSignature 调用合约中的方法 
     function getcalldata(uint _owner) external pure returns(bytes memory){
-        //获得 abi.encodeWithSignature 打包后的调用合约中的方法的code 16进制编码 ，如执行setOwner的code
+        //获得 abi.encodeWithSignature 打包后的调用合约中的方法的code 16进制编码 ，如执行add的code
         return abi.encodeWithSignature('setOwner(address)', _owner);
     }
     //执行操作, _target 要执行的合约地址，_data 此合约地址中abi.encodeWithSignature打包后的code
@@ -149,3 +159,81 @@ contract Proxy {
         emit Deploy(addr);
     }
 }
+
+//给继承的合约传参数
+contract S {
+    string public name;
+    constructor(string memory _name){
+        name = _name;
+    }
+    function getname() public returns(string memory){
+        return name;
+    }
+}
+
+contract T {
+    string public text;
+    constructor(string memory _text){
+        text = _text;
+    }
+}
+//继承后给父级构造函数传参数
+contract U is S , T('s'){//直接给T合约传参
+    //由部署者输入参数
+    string public a;
+    constructor(string memory _name) S(_name) {
+        //调用父级函数
+        a = S.getname();
+    }
+}
+
+
+//支付相关
+contract Payable {
+    address payable public owner;
+    constructor(){
+        //msg.sender默认是没有 payable 的属性的，所以要包裹一下
+        owner = payable(msg.sender);
+    }
+    //回退函数,调用不存在的函数 或者 发送主币失败 会走这个fallback。
+    fallback() external payable{}
+
+    //发送主币
+    function deposit() external payable {
+
+    }
+
+    function getBalance() external view returns(uint) {
+        return address(this).balance;
+    }
+}
+
+//发送主币
+// transfer - 2300 gas
+// call - 2300 gas return bool
+// send - all gas return (success,data)
+contract SendEth {
+    constructor() payable {}
+    fallback() external payable {}
+
+    function sendByTransfer(address payable _to) external payable {
+        //携带gas 
+        _to.transfer(123);
+    }
+
+    function sendBySend(address payable _to) external payable {
+        _to.send(123);
+    }
+
+    function sendByCall(address payable _to) external payable {
+        (bool success, ) = _to.call{value:123}("");
+    }
+}
+//相当于一个钱包
+contract GetEth {
+    event Log(uint amount, uint gas);
+    receive() external payable {
+        emit Log(msg.value, gasleft());
+    }
+}
+

@@ -265,3 +265,51 @@ contract DelegateCall { //委托合约
     }
 
 }
+
+
+//对一个消息进行签名，验证
+contract VerifySign {
+    /*
+        @_signer 签名人地址
+        @_message 要签名的地址
+        @_sig 签名后的结果
+    **/
+    // 验证
+    function verify(address _signer ,string memory _message, bytes memory _sig) external pure returns(bool) {
+       bytes32 messageHash = getMessageHash(_message);//获取消息Hash
+       bytes32 ethSignMessageHash = getethSignMessageHash(messageHash); //对messageHash再进行一次hash运算
+        // recover 函数恢复 hash值 ，比较_signer是否相等
+       return recover(ethSignMessageHash, _sig) == _signer;
+
+    }
+    function getMessageHash(string memory _message) public pure returns (bytes32) {
+        return keccak256(abi.encodePacked(_message));
+    }
+
+    function getethSignMessageHash(bytes32 _messageHash) public pure returns (bytes32) {
+        return keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32",_messageHash));
+    }
+
+    function recover(bytes32 _ethSignMessageHash, bytes memory _sig) public pure returns (address) {
+        (bytes32 r, bytes32 s, uint8 v) = _split(_sig);
+        //ecrecover 还原的方法
+        return ecrecover(_ethSignMessageHash,v, r ,s);
+    }
+
+    //_split拼接_sig
+    //r - 32位
+    //s - 32位
+    //v - 1位
+    function _split(bytes memory _sig) internal pure returns(bytes32 r, bytes32 s, uint8 v) {
+        // 判断_sig长度是否 等于 32 + 32 + 1
+        require(_sig.length == 65,"_sig error");
+        //内联汇编
+        assembly {
+            //mload方法在内存中跳过32位 ，add方法 在32位后 插入 _sig值的32位
+            r := mload(add(_sig,32))
+            s := mload(add(_sig,64))
+            //因为uint8只占一位 所以用byte（0，...)来获取一位数
+            v := byte(0, mload(add(_sig,96)))
+        }
+    }   
+}

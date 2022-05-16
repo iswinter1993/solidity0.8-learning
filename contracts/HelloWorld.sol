@@ -238,25 +238,14 @@ contract GetEth {
 }
 
 
-//6.委托调用改变合约的值
-contract TestDelegateCall { //被调用合约
-// 定义的变量 要和 委托合约的变量一致
-    uint public num;
-    address sender;
 
-    function setVars(uint _num) external payable {
-        num = _num;
-        sender = msg.sender;
-    }
-}
 //6.委托调用
 //用途：
 //如果 我 通过 DelegateCall 直接 call调用合约，那msg.sender看到的地址或者信息都是调用者的，也就是DelegateCall合约的。
 //如果 我 通过 DelegateCall 用 delegatecall委托调用合约，那msg.sender看到的地址或者信息是 我 的，也就是 我的msg.sender 。
 contract DelegateCall { //委托合约
 // 定义的变量 要和 委托合约的变量一致
-    uint public num;
-    address public sender;
+   
     //_target 要调用合约的地址
     function setVars(address _target, uint _num) external payable {
         //委托调用 方法1.
@@ -268,6 +257,20 @@ contract DelegateCall { //委托合约
     }
 
 }
+
+//6.委托调用改变合约的值
+//委托调用 只能调用自身合约 ，所以要继承一下
+contract TestDelegateCall is DelegateCall{ //被调用合约
+// 定义的变量 要和 委托合约的变量一致
+    uint public num;
+    address public sender;
+
+    function setVars(uint _num) external payable {
+        num = _num;
+        sender = msg.sender;
+    }
+}
+
 
 
 //7.对一个消息进行签名，验证
@@ -353,5 +356,3 @@ contract Multicall {
         return result;
     }
 }
-
-//

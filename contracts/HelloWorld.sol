@@ -35,7 +35,7 @@ contract HelloWorld {
     }
 }
 
-//计数器合约
+//1.计数器合约
 
 error isFalse(address caller);
 
@@ -126,7 +126,7 @@ contract Counter {
 }
 
 
-//通过合约 部署 合约
+//2.通过合约 部署 合约
 contract Proxy {
     event Deploy(address);
     //动态部署无参数合约
@@ -140,9 +140,9 @@ contract Proxy {
         //把合约编译后的code 和 encode后的参数 进行打包后返回
         return abi.encodePacked(bytecode, abi.encode(_x));
     }
-    //abi.encodeWithSignature 调用合约中的方法 
+    //abi.encodeWithSignature 打包合约中的方法 
     function getcalldata(uint _owner) external pure returns(bytes memory){
-        //获得 abi.encodeWithSignature 打包后的调用合约中的方法的code 16进制编码 ，如执行add的code
+        //获得 abi.encodeWithSignature 打包后的合约中的方法的code 16进制编码 ，如执行add的code
         return abi.encodeWithSignature('setOwner(address)', _owner);
     }
     //执行操作, _target 要执行的合约地址，_data 此合约地址中abi.encodeWithSignature打包后的code
@@ -160,7 +160,7 @@ contract Proxy {
     }
 }
 
-//给继承的合约传参数
+//3.给继承的合约传参数
 contract S {
     string public name;
     constructor(string memory _name){
@@ -177,7 +177,7 @@ contract T {
         text = _text;
     }
 }
-//继承后给父级构造函数传参数
+//3.继承后给父级构造函数传参数
 contract U is S , T('s'){//直接给T合约传参
     //由部署者输入参数
     string public a;
@@ -188,7 +188,7 @@ contract U is S , T('s'){//直接给T合约传参
 }
 
 
-//支付相关
+//4.支付相关
 contract Payable {
     address payable public owner;
     constructor(){
@@ -208,7 +208,7 @@ contract Payable {
     }
 }
 
-//发送主币
+//5.发送主币
 // transfer - 2300 gas
 // call - 2300 gas return bool
 // send - all gas return (success,data)
@@ -229,7 +229,7 @@ contract SendEth {
         (bool success, ) = _to.call{value:123}("");
     }
 }
-//相当于一个钱包
+//5.相当于一个钱包
 contract GetEth {
     event Log(uint amount, uint gas);
     receive() external payable {
@@ -238,7 +238,7 @@ contract GetEth {
 }
 
 
-//委托调用改变合约的值
+//6.委托调用改变合约的值
 contract TestDelegateCall { //被调用合约
 // 定义的变量 要和 委托合约的变量一致
     uint public num;
@@ -249,7 +249,7 @@ contract TestDelegateCall { //被调用合约
         sender = msg.sender;
     }
 }
-//委托调用
+//6.委托调用
 contract DelegateCall { //委托合约
 // 定义的变量 要和 委托合约的变量一致
     uint public num;
@@ -267,7 +267,7 @@ contract DelegateCall { //委托合约
 }
 
 
-//对一个消息进行签名，验证
+//7.对一个消息进行签名，验证
 contract VerifySign {
     /*
         @_signer 签名人地址
@@ -312,4 +312,40 @@ contract VerifySign {
             v := byte(0, mload(add(_sig,96)))
         }
     }   
+}
+
+//8.multi call 将多个对合约的请求，打包成一个发送给合约
+contract TestMulticall {
+    function func1() external view returns(uint,uint) {
+        return (1, block.timestamp);
+    }
+
+    function func2() external view returns(uint, uint) {
+        return (2, block.timestamp);
+    }
+    //func1 func2获取multicall 中 data 参数的方法
+    function getdata1 () public pure returns(bytes memory) {
+        //
+        return abi.encodeWithSignature('func1');
+    }
+    function getdata2 () public pure returns(bytes memory)  {
+        return abi.encodeWithSignature('func2');
+    }
+}
+contract Multicall {
+    //targets 两次调用的合约地址，data 两次调用的方法打包后的数据（abi.encodeWithSignature(signatureString, arg);）
+    function multicall(address[] memory targets, bytes[] calldata data) external view  returns(bytes[] memory){
+        require(targets.length == data.length,"target length == data length");
+        //返回的bytes 和 输入的 data 长度相等
+        bytes[] memory result = new bytes[](data.length);  
+
+        for(uint i=0; i<targets.length; i++){
+            //staticcall静态调用，不会写入数据
+            (bool success, bytes memory res) = targets[i].staticcall(data[i]);
+            require(success,"call failed");
+            result[i] = res;
+        }
+
+        return result;
+    }
 }

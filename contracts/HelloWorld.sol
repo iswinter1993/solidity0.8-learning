@@ -250,6 +250,9 @@ contract TestDelegateCall { //被调用合约
     }
 }
 //6.委托调用
+//用途：
+//如果 我 通过 DelegateCall 直接 call调用合约，那msg.sender看到的地址或者信息都是调用者的，也就是DelegateCall合约的。
+//如果 我 通过 DelegateCall 用 delegatecall委托调用合约，那msg.sender看到的地址或者信息是 我 的，也就是 我的msg.sender 。
 contract DelegateCall { //委托合约
 // 定义的变量 要和 委托合约的变量一致
     uint public num;
@@ -350,3 +353,5 @@ contract Multicall {
         return result;
     }
 }
+
+//

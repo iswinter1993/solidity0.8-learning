@@ -332,6 +332,7 @@ contract TestMulticall {
         return abi.encodeWithSignature('func2');
     }
 }
+//主要利用for循环 和 staticcall 
 contract Multicall {
     //targets 两次调用的合约地址，data 两次调用的方法打包后的数据（abi.encodeWithSignature(signatureString, arg);）
     function multicall(address[] memory targets, bytes[] calldata data) external view  returns(bytes[] memory){
